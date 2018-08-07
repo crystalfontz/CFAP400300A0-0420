@@ -328,3 +328,8 @@ ASALocalRun/
 
 # MFractors (Xamarin productivity tool) working folder 
 .mfractor/
+/CFAP400300A00420_Arduino/__vm
+/CFAP400300A00420_Arduino/CFAP400300A00420_Arduino.vcxproj.filters
+/CFAP400300A00420_Arduino/CFAP400300A00420_Arduino.vcxproj
+/CFAP400300A00420_Arduino/~AutoRecover.CFAP400300A00420_Arduino.vcxproj
+/CFAP400300A00420_Arduino.sln
