@@ -74,6 +74,7 @@
 
 // Include LUTs
 #include "LUTs_for_CFAP400300A00420.h"
+#include "CFAP400300A00420_Images.h"
 
 #define EPD_READY   3
 #define EPD_RESET   4
@@ -180,8 +181,7 @@ void initEPD()
   Serial.println("after wait");
 
   //Panel Setting 
-  writeCMD(0x00);
-  writeData(0x83);
+  setOTPLUT();
 
   //PLL Control
   writeCMD(0x30);
@@ -299,15 +299,17 @@ void setOTPLUT()
 
 void partialUpdateSolid(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint8_t color1, uint8_t color2)
 {
+  writeCMD(0x82);
+  writeData(0x08);
+  writeCMD(0X50);
+  writeData(0x47);
+
+  setPartialRegisterLUT();
   //turn on partial update mode
   writeCMD(0x91);
 
   //set the partial area
   writeCMD(0x90);
-  Serial.print("x1: ");
-  Serial.println(x1);
-  Serial.print("x2: ");
-  Serial.println(x2);
 
   writeData(0x00);	  //1st half of x1  
   writeData(0x00);	//2nd half of x1
@@ -344,30 +346,32 @@ void partialUpdateSolid(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint
   int i;
   int h;
   //send black and white information
-  //writeCMD(0x10);
-  //for (h = 0; h <= y2 - y1; h++)
-  //{
-  //  for (i = 0; i <= (x2 - x1) / 8; i++)
-  //  {
-  //    writeData(color1);
-  //  }
-  //}
-  ////send red information
-  //writeCMD(0x13); 
-  //for (h = 0; h <= y2 - y1; h++)
-  //{
-  //  for (i = 0; i <= (x2 - x1) / 8; i++)
-  //  {
-  //    writeData(color2);
-  //  }
-  //}
+  writeCMD(0x10);
+  for (h = 0; h <= y2 - y1; h++)
+  {
+    for (i = 0; i <= (x2 - x1) / 8; i++)
+    {
+      writeData(0x00);
+    }
+  }
+  //send red information
+  writeCMD(0x13); 
+  for (h = 0; h <= y2 - y1; h++)
+  {
+    for (i = 0; i <= (x2 - x1) / 8; i++)
+    {
+      writeData(0xff);
+    }
+  }
 
   //partial refresh of the same area as the partial update
   writeCMD(0x12);
+  delay(10);
   while (0 == digitalRead(EPD_READY));
 
   //turn off partial update mode
   writeCMD(0x92);
+  setOTPLUT();
 }
 
 //================================================================================
@@ -448,6 +452,88 @@ void Load_Flash_Image_To_Display_RAM(uint16_t width_pixels,
   //Deslect the controller   
   ePaper_CS_1;
 }
+
+//================================================================================
+void Load_Flash_Image_To_Display_RAM_RLE(uint16_t width_pixels,
+  uint16_t height_pixels,
+  const uint8_t *BW_image,
+  const uint8_t *R_image)
+{
+  //Index into *image, that works with pgm_read_byte()
+  uint8_t count = 0;
+
+  //Get width_bytes from width_pixel, rounding up
+  uint8_t
+    width_bytes;
+  width_bytes = (width_pixels + 7) >> 3;
+
+  //Make sure the display is not busy before starting a new command.
+  while (0 == digitalRead(EPD_READY));
+  //Select the controller   
+  ePaper_CS_0;
+
+  //Aim at the command register
+  ePaper_DC_0;
+  //Write the command: DATA START TRANSMISSION 1 (DTM2) (R13H)
+  //  Display Start transmission 1
+  //  (DTM1, BW Data)
+  //
+  // This command starts transmitting data and write them into SRAM. To complete
+  // data transmission, command DSP (Data transmission Stop) must be issued. Then
+  // the chip will start to send data/VCOM for panel.
+  //  * In B/W mode, this command writes “OLD” data to SRAM.
+  //  * In B/W/Red mode, this command writes “BW” data to SRAM.
+  SPI.transfer(0x10);
+  //Pump out the BW data.
+  ePaper_DC_1;
+  count = 0;
+  for (int i = 0; i < 9382; i = i + 2)
+  {
+    count = pgm_read_byte(&BW_image[i]);
+    //Serial.print("count: ");
+    //Serial.println(count);
+    //Serial.print("data: ");
+    //Serial.println(pgm_read_byte(&BW_image[i + 1]),HEX);
+    for (uint8_t j = 0; j < count; j++)
+    {
+    SPI.transfer(pgm_read_byte(&BW_image[i+1]));
+    }
+  }
+
+  
+
+  //Aim at the command register
+  ePaper_DC_0;
+  //Write the command: DATA START TRANSMISSION 2 (DTM2) (R13H)
+  //  Display Start transmission 2
+  //  (DTM2, Red Data)
+  //
+  // This command starts transmitting data and write them into SRAM. To complete
+  // data transmission, command DSP (Data transmission Stop) must be issued. Then
+  // the chip will start to send data/VCOM for panel.
+  //  * In B/W mode, this command writes “NEW” data to SRAM.
+  //  * In B/W/Red mode, this command writes “Red” data to SRAM.
+  SPI.transfer(0x13);
+  //Pump out the Red data.
+  ePaper_DC_1;
+  count = 0;
+  for (int i = 0; i < 7004; i = i + 2)
+  {
+    count = pgm_read_byte(&R_image[i]);
+    for (uint8_t j = 0; j < count; j++)
+      SPI.transfer(pgm_read_byte(&R_image[i + 1]));
+  }
+
+  //Aim back at the command register
+  ePaper_DC_0;
+  //Write the command: DATA STOP (DSP) (R11H)
+  SPI.transfer(0x11);
+  //Write the command: Display Refresh (DRF)   
+  SPI.transfer(0x12);
+  //Deslect the controller   
+  ePaper_CS_1;
+}
+
 
 //================================================================================
 void show_BMPs_in_root(void)
@@ -672,14 +758,16 @@ void powerOff()
 }
 //=============================================================================
 //The following code enables/disables different demos
-#define waittime      180000
-#define splashscreen  0
-#define white         0
-#define black         0
-#define red           0
-#define checkerboard  1
-#define partialUpdate 0 //not working properly at the moment
-#define showBMPs      0
+#define waittime        180000
+#define splashscreen    0
+#define splashscreenRLE 1
+#define white           1
+#define black           0
+#define red             0
+#define checkerboard    1
+#define partialUpdate   0 //not working properly at the moment
+#define showBMPs        0
+
 //Refer to datasheet for recommended time between updates
 void loop()
 {
@@ -740,6 +828,23 @@ void loop()
   delay(waittime);
 #endif
 
+
+#if splashscreenRLE
+  //on the Seeeduino, there is not enough flash memory to store this data 
+  //but if another uP with more flash is used, this function can be utilized
+  //power on the display
+  powerON();
+  //load an image to the display
+  Load_Flash_Image_To_Display_RAM_RLE(HRES, VRES, Splash_Mono_1BPP, Splash_Red_1BPP);
+
+
+  Serial.print("refreshing . . . ");
+  while (0 == digitalRead(EPD_READY));
+  Serial.println("refresh complete");
+  //for maximum power conservation, power off the EPD
+  powerOff();
+  delay(waittime);
+#endif
 
 #if black
   //power on the display
