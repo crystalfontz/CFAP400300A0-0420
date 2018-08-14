@@ -487,13 +487,9 @@ void Load_Flash_Image_To_Display_RAM_RLE(uint16_t width_pixels,
   //Pump out the BW data.
   ePaper_DC_1;
   count = 0;
-  for (int i = 0; i < 9382; i = i + 2)
+  for (int i = 0; i < MONO_ARRAY_SIZE; i = i + 2)
   {
     count = pgm_read_byte(&BW_image[i]);
-    //Serial.print("count: ");
-    //Serial.println(count);
-    //Serial.print("data: ");
-    //Serial.println(pgm_read_byte(&BW_image[i + 1]),HEX);
     for (uint8_t j = 0; j < count; j++)
     {
     SPI.transfer(pgm_read_byte(&BW_image[i+1]));
@@ -517,7 +513,7 @@ void Load_Flash_Image_To_Display_RAM_RLE(uint16_t width_pixels,
   //Pump out the Red data.
   ePaper_DC_1;
   count = 0;
-  for (int i = 0; i < 7004; i = i + 2)
+  for (int i = 0; i < RED_ARRAY_SIZE; i = i + 2)
   {
     count = pgm_read_byte(&R_image[i]);
     for (uint8_t j = 0; j < count; j++)
@@ -761,7 +757,7 @@ void powerOff()
 #define waittime        180000
 #define splashscreen    0
 #define splashscreenRLE 1
-#define white           1
+#define white           0
 #define black           0
 #define red             0
 #define checkerboard    1
@@ -835,7 +831,7 @@ void loop()
   //power on the display
   powerON();
   //load an image to the display
-  Load_Flash_Image_To_Display_RAM_RLE(HRES, VRES, Splash_Mono_1BPP, Splash_Red_1BPP);
+  Load_Flash_Image_To_Display_RAM_RLE(HRES, VRES, Mono_1BPP, Red_1BPP);
 
 
   Serial.print("refreshing . . . ");
