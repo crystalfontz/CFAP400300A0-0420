@@ -12,7 +12,7 @@
 * One Dimensional Array: true
 */
 
-//Source image file: "V:\_CFA-OTS\CFAP (ePaper)\CFAP400300A0-0420 = 4.2 BWR\media\Brent_CFAP400300A0-0420-Red_Splash.bmp"
+//Source image file: 
 #define HEIGHT_PIXELS    (300)
 #define WIDTH_PIXELS     (400)
 #define WIDTH_MONO_BYTES (50)
