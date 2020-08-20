@@ -247,6 +247,10 @@ void setRegisterLUT()
 
 void setPartialRegisterLUT()
 {
+  //Please note, this is demonstration code on how to use the Partial Updating on the controller but this display itself
+  //  does not support partial updating. Using this code may cause ghosting issues over time.
+
+
   //set LUTs
   //The following block allows the LUTs to be changed. 
   //This code is mostly for example only - it is recommended to use the OTP LUTs as the
@@ -299,6 +303,9 @@ void setOTPLUT()
 
 void partialUpdateSolid(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint8_t color1, uint8_t color2)
 {
+  //Please note, this is demonstration code on how to use the Partial Updating on the controller but this display itself
+  //  does not support partial updating. Using this code may cause ghosting issues over time.
+
   writeCMD(0x82);
   writeData(0x08);
   writeCMD(0X50);
@@ -944,6 +951,9 @@ void loop()
 #endif
 
 #if partialUpdate
+  //Please note, this is demonstration code on how to use the Partial Updating on the controller but this display itself
+  //  does not support partial updating. Using this code may cause ghosting issues over time.
+
   //Looking into an issue where half the screen is flashing white
   //power on the display
   powerON();
